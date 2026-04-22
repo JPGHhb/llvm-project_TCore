@@ -1,3 +1,4 @@
+#include "MCTargetDesc/TCoreFixupKinds.h"
 #include "MCTargetDesc/TCoreInstPrinter.h"
 #include "MCTargetDesc/TCoreMCAsmInfo.h"
 #include "MCTargetDesc/TCoreMCTargetDesc.h"
@@ -56,6 +57,10 @@ static MCInstPrinter *createTCoreMCInstPrinter(const Triple &T,
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeTCoreTargetMC() {
   RegisterMCAsmInfoFn X(getTheTCoreTarget(), createTCoreMCAsmInfo);
+  TargetRegistry::RegisterMCAsmBackend(getTheTCoreTarget(),
+                                       createTCoreAsmBackend);
+  TargetRegistry::RegisterMCCodeEmitter(getTheTCoreTarget(),
+                                        createTCoreMCCodeEmitter);
   TargetRegistry::RegisterMCInstrInfo(getTheTCoreTarget(), createTCoreMCInstrInfo);
   TargetRegistry::RegisterMCRegInfo(getTheTCoreTarget(), createTCoreMCRegisterInfo);
   TargetRegistry::RegisterMCSubtargetInfo(getTheTCoreTarget(),

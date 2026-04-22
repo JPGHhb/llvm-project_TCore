@@ -22,6 +22,21 @@ public:
   StringRef getPassName() const override { return "TCore Assembly Printer"; }
 
   void emitInstruction(const MachineInstr *MI) override {
+    switch (MI->getOpcode()) {
+    case TCore::ADJCALLSTACKDOWN:
+    case TCore::ADJCALLSTACKUP:
+      return;
+    case TCore::RET: {
+      MCInst RetInst;
+      RetInst.setOpcode(TCore::CALLR);
+      RetInst.addOperand(MCOperand::createReg(TCore::LR));
+      EmitToStreamer(*OutStreamer, RetInst);
+      return;
+    }
+    default:
+      break;
+    }
+
     MCInst OutMI;
     OutMI.setOpcode(MI->getOpcode());
     for (const MachineOperand &MO : MI->operands()) {
