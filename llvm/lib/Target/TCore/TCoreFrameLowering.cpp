@@ -13,6 +13,10 @@ bool TCoreFrameLowering::hasFPImpl(const MachineFunction &MF) const {
   return false;
 }
 
+bool TCoreFrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
+  return !MF.getFrameInfo().hasVarSizedObjects();
+}
+
 void TCoreFrameLowering::emitPrologue(MachineFunction &MF,
                                       MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator I = MBB.begin();
@@ -42,6 +46,9 @@ void TCoreFrameLowering::emitEpilogue(MachineFunction &MF,
 MachineBasicBlock::iterator TCoreFrameLowering::eliminateCallFramePseudoInstr(
     MachineFunction &MF, MachineBasicBlock &MBB,
     MachineBasicBlock::iterator I) const {
+  if (hasReservedCallFrame(MF))
+    return MBB.erase(I);
+
   const auto &TII =
       *static_cast<const TCoreInstrInfo *>(MF.getSubtarget().getInstrInfo());
   int64_t Amount = I->getOperand(0).getImm();
