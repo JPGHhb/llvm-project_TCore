@@ -35,6 +35,7 @@ SDValue TCoreTargetLowering::LowerFormalArguments(
   MachineFunction &MF = DAG.getMachineFunction();
   MachineRegisterInfo &RegInfo = MF.getRegInfo();
   SmallVector<CCValAssign, 8> ArgLocs;
+  SmallVector<SDValue, 8> ArgChains;
   CCState CCInfo(CallConv, IsVarArg, MF, ArgLocs, *DAG.getContext());
   CCInfo.AnalyzeFormalArguments(Ins, CC_TCore);
 
@@ -44,6 +45,7 @@ SDValue TCoreTargetLowering::LowerFormalArguments(
       RegInfo.addLiveIn(VA.getLocReg(), VReg);
       SDValue ArgIn = DAG.getCopyFromReg(Chain, DL, VReg, VA.getValVT());
       InVals.push_back(ArgIn);
+      ArgChains.push_back(ArgIn.getValue(1));
     } else {
       int FI = MF.getFrameInfo().CreateFixedObject(4, VA.getLocMemOffset(), true);
       SDValue FIN = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
@@ -51,8 +53,13 @@ SDValue TCoreTargetLowering::LowerFormalArguments(
                                  MachinePointerInfo::getFixedStack(
                                      DAG.getMachineFunction(), FI));
       InVals.push_back(Load);
+      ArgChains.push_back(Load.getValue(1));
     }
   }
+
+  if (!ArgChains.empty())
+    Chain = DAG.getTokenFactor(DL, ArgChains);
+
   return Chain;
 }
 

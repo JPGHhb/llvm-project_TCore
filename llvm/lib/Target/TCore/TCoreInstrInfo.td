@@ -28,11 +28,11 @@ class TCorePseudo<dag outs, dag ins, string asmstr, list<dag> pattern = []>
 }
 
 let isMoveImm = 1 in
-def MOVri : TCoreInst<(outs GPR:$dst), (ins simm16:$imm), "mov $dst, $imm">;
+def MOVri : TCoreInst<(outs GPR:$dst), (ins simm16:$imm), "mov $dst, $imm",
+                      [(set GPR:$dst, imm:$imm)]>;
 
 let isMoveReg = 1 in
-def MOVrr : TCoreInst<(outs GPR:$dst), (ins GPR:$src), "mov $dst, $src",
-                      [(set GPR:$dst, GPR:$src)]>;
+def MOVrr : TCoreInst<(outs GPR:$dst), (ins GPR:$src), "mov $dst, $src">;
 
 class BinRR<string mnemonic, SDPatternOperator OpNode>
     : TCoreInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs),
@@ -107,7 +107,7 @@ def BLE : TCoreInst<(outs), (ins brtarget:$target), "jle $target">;
 let isCall = 1, Defs = [LR], Uses = [LR] in
 def CALLR : TCoreInst<(outs), (ins GPR:$target), "jmp $target">;
 
-let isReturn = 1, isTerminator = 1, isBarrier = 1 in
+let isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R1] in
 def RET : TCorePseudo<(outs), (ins), "jmp lr", [(TCoreRetFlag)]>;
 
 let isPseudo = 1 in

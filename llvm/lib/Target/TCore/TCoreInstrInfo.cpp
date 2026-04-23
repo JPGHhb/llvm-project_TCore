@@ -5,7 +5,7 @@
 
 using namespace llvm;
 
-#define GET_INSTRINFO_TARGET_DESC
+#define GET_INSTRINFO_CTOR_DTOR
 #include "TCoreGenInstrInfo.inc"
 
 TCoreInstrInfo::TCoreInstrInfo(const TCoreSubtarget &STI)

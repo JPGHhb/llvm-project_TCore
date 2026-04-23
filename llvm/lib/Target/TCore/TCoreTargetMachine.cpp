@@ -5,15 +5,12 @@
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/MC/TargetRegistry.h"
-#include "llvm/PassRegistry.h"
 #include "llvm/Transforms/Scalar.h"
 
 using namespace llvm;
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeTCoreTarget() {
   RegisterTargetMachine<TCoreTargetMachine> X(getTheTCoreTarget());
-  PassRegistry &PR = *PassRegistry::getPassRegistry();
-  initializeTCoreAsmPrinterPass(PR);
 }
 
 static std::string computeDataLayout() {
