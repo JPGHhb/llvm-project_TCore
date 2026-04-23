@@ -17,6 +17,10 @@
 using namespace clang;
 using namespace clang::targets;
 
+static bool isTCoreTriple(const llvm::Triple &Triple) {
+  return Triple.getArchName() == "tcore";
+}
+
 void TCETargetInfo::getTargetDefines(const LangOptions &Opts,
                                      MacroBuilder &Builder) const {
   DefineStd(Builder, "tce", Opts);
@@ -38,7 +42,13 @@ void TCELE64TargetInfo::getTargetDefines(const LangOptions &Opts,
 
 void TCELETargetInfo::getTargetDefines(const LangOptions &Opts,
                                        MacroBuilder &Builder) const {
-  DefineStd(Builder, "tcele", Opts);
+  if (isTCoreTriple(getTriple())) {
+    DefineStd(Builder, "tcore", Opts);
+    Builder.defineMacro("__TCORE__");
+    Builder.defineMacro("__TCORE_V1__");
+  } else {
+    DefineStd(Builder, "tcele", Opts);
+  }
   Builder.defineMacro("__TCE__");
   Builder.defineMacro("__TCE_V1__");
   Builder.defineMacro("__TCELE__");

@@ -7164,7 +7164,11 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
         TC = std::make_unique<toolchains::TCEToolChain>(*this, Target, Args);
         break;
       case llvm::Triple::tcele:
-        TC = std::make_unique<toolchains::TCELEToolChain>(*this, Target, Args);
+        if (Target.getArchName() == "tcore")
+          TC = std::make_unique<toolchains::BareMetal>(*this, Target, Args);
+        else
+          TC = std::make_unique<toolchains::TCELEToolChain>(*this, Target,
+                                                            Args);
         break;
       case llvm::Triple::tcele64:
         TC =
