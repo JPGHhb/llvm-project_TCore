@@ -34,6 +34,7 @@ TCoreTargetLowering::TCoreTargetLowering(const TargetMachine &TM,
   addRegisterClass(MVT::i32, &TCore::GPRRegClass);
   setStackPointerRegisterToSaveRestore(TCore::SP);
   setBooleanContents(ZeroOrOneBooleanContent);
+  setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
   computeRegisterProperties(STI.getRegisterInfo());
 }
 
@@ -41,6 +42,8 @@ const char *TCoreTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
   case TCoreISD::RET_FLAG:
     return "TCoreISD::RET_FLAG";
+  case TCoreISD::LOAD_ADDR:
+    return "TCoreISD::LOAD_ADDR";
   case TCoreISD::CALL:
     return "TCoreISD::CALL";
   case TCoreISD::CALL_REG:
@@ -221,6 +224,18 @@ SDValue TCoreTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
 SDValue TCoreTargetLowering::LowerOperation(SDValue Op,
                                             SelectionDAG &DAG) const {
-  report_fatal_error(
-      "TCore custom lowering not implemented for this operation yet");
+  SDLoc DL(Op);
+  switch (Op.getOpcode()) {
+  case ISD::GlobalAddress: {
+    const auto *GN = cast<GlobalAddressSDNode>(Op);
+    if (GN->getOffset() != 0)
+      report_fatal_error("TCore global-address offsets not implemented yet");
+    SDValue GA =
+        DAG.getTargetGlobalAddress(GN->getGlobal(), DL, MVT::i32, 0);
+    return DAG.getNode(TCoreISD::LOAD_ADDR, DL, MVT::i32, GA);
+  }
+  default:
+    report_fatal_error(
+        "TCore custom lowering not implemented for this operation yet");
+  }
 }

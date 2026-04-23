@@ -26,6 +26,32 @@ public:
     case TCore::ADJCALLSTACKDOWN:
     case TCore::ADJCALLSTACKUP:
       return;
+    case TCore::MOVaddr: {
+      const MachineOperand &Target = MI->getOperand(1);
+      const MCSymbol *Symbol = nullptr;
+      if (Target.isGlobal())
+        Symbol = getSymbol(Target.getGlobal());
+      else if (Target.isSymbol())
+        Symbol = GetExternalSymbolSymbol(Target.getSymbolName());
+      else
+        report_fatal_error("TCore MOVaddr expects global or external symbol");
+
+      const MCExpr *TargetExpr = MCSymbolRefExpr::create(Symbol, OutContext);
+      MCRegister DestReg = MI->getOperand(0).getReg();
+
+      MCInst HiInst;
+      HiInst.setOpcode(TCore::LDUi);
+      HiInst.addOperand(MCOperand::createReg(DestReg));
+      HiInst.addOperand(MCOperand::createExpr(TargetExpr));
+      EmitToStreamer(*OutStreamer, HiInst);
+
+      MCInst LoInst;
+      LoInst.setOpcode(TCore::LDLi);
+      LoInst.addOperand(MCOperand::createReg(DestReg));
+      LoInst.addOperand(MCOperand::createExpr(TargetExpr));
+      EmitToStreamer(*OutStreamer, LoInst);
+      return;
+    }
     case TCore::CALL: {
       const MachineOperand &Target = MI->getOperand(0);
       const MCSymbol *Symbol = nullptr;

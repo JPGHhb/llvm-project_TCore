@@ -3,6 +3,7 @@ def simm16 : Operand<i32> {
 }
 
 def calltarget : Operand<i32>;
+def addrtarget : Operand<i32>;
 
 def off11 : Operand<i32> {
   let OperandType = "OPERAND_IMMEDIATE";
@@ -10,6 +11,7 @@ def off11 : Operand<i32> {
 
 def brtarget : Operand<OtherVT>;
 
+def SDT_TCoreAddr : SDTypeProfile<1, 1, [SDTCisPtrTy<0>, SDTCisPtrTy<1>]>;
 def SDT_TCoreCall : SDTypeProfile<0, 1, [SDTCisPtrTy<0>]>;
 def SDT_TCoreCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>,
                                             SDTCisVT<1, i32>]>;
@@ -18,6 +20,7 @@ def SDT_TCoreCallSeqEnd : SDCallSeqEnd<[SDTCisVT<0, i32>,
 
 def TCoreRetFlag : SDNode<"TCoreISD::RET_FLAG", SDTNone,
                           [SDNPHasChain, SDNPOptInGlue]>;
+def TCoreLoadAddr : SDNode<"TCoreISD::LOAD_ADDR", SDT_TCoreAddr, []>;
 def TCoreCall : SDNode<"TCoreISD::CALL", SDT_TCoreCall,
                        [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                         SDNPVariadic]>;
@@ -128,6 +131,11 @@ def BLE : TCoreInst<(outs), (ins brtarget:$target), "jle $target">;
 
 let isCall = 1, Defs = [LR], Uses = [LR] in
 def CALLR : TCoreInst<(outs), (ins GPR:$target), "jmp $target">;
+
+def MOVaddr : TCorePseudo<(outs GPR:$dst), (ins addrtarget:$target),
+                          "movaddr $dst, $target",
+                          [(set GPR:$dst, (TCoreLoadAddr tglobaladdr:$target))]>;
+def : Pat<(TCoreLoadAddr texternalsym:$target), (MOVaddr texternalsym:$target)>;
 
 let isCall = 1, Defs = [LR, R14] in
 def CALL : TCorePseudo<(outs), (ins calltarget:$target), "call $target",

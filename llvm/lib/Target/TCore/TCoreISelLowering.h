@@ -12,6 +12,7 @@ namespace TCoreISD {
 enum NodeType : unsigned {
   FIRST_NUMBER = ISD::BUILTIN_OP_END,
   RET_FLAG,
+  LOAD_ADDR,
   CALL,
   CALL_REG
 };
