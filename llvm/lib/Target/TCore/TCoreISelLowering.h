@@ -11,7 +11,9 @@ class TCoreTargetMachine;
 namespace TCoreISD {
 enum NodeType : unsigned {
   FIRST_NUMBER = ISD::BUILTIN_OP_END,
-  RET_FLAG
+  RET_FLAG,
+  CALL,
+  CALL_REG
 };
 }
 
@@ -32,6 +34,9 @@ public:
                       const SmallVectorImpl<ISD::OutputArg> &Outs,
                       const SmallVectorImpl<SDValue> &OutVals, const SDLoc &DL,
                       SelectionDAG &DAG) const override;
+
+  SDValue LowerCall(CallLoweringInfo &CLI,
+                    SmallVectorImpl<SDValue> &InVals) const override;
 
   SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
 };

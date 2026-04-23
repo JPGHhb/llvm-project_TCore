@@ -187,6 +187,9 @@ void TCoreMCCodeEmitter::encodeInstruction(const MCInst &MI,
 
   switch (Opcode) {
   case TCore::MOVri:
+    Bits = encodeImmForm(RawOpcode, getRegEncoding(MI.getOperand(0).getReg()),
+                         getImm16Encoding(MI, 1, Fixups));
+    break;
   case TCore::ADDri:
   case TCore::SUBri:
   case TCore::MULri:
@@ -195,6 +198,9 @@ void TCoreMCCodeEmitter::encodeInstruction(const MCInst &MI,
   case TCore::ANDri:
   case TCore::SHLri:
   case TCore::SHRri:
+    Bits = encodeImmForm(RawOpcode, getRegEncoding(MI.getOperand(0).getReg()),
+                         getImm16Encoding(MI, 2, Fixups));
+    break;
   case TCore::CMPri:
     Bits = encodeImmForm(RawOpcode, getRegEncoding(MI.getOperand(0).getReg()),
                          getImm16Encoding(MI, 1, Fixups));
@@ -210,6 +216,9 @@ void TCoreMCCodeEmitter::encodeInstruction(const MCInst &MI,
                                           TCore::fixup_tcore_lo16));
     break;
   case TCore::MOVrr:
+    Bits = encodeRegForm(RawOpcode, getRegEncoding(MI.getOperand(0).getReg()),
+                         getRegEncoding(MI.getOperand(1).getReg()));
+    break;
   case TCore::ADDrr:
   case TCore::SUBrr:
   case TCore::MULrr:
@@ -218,6 +227,9 @@ void TCoreMCCodeEmitter::encodeInstruction(const MCInst &MI,
   case TCore::ANDrr:
   case TCore::SHLrr:
   case TCore::SHRrr:
+    Bits = encodeRegForm(RawOpcode, getRegEncoding(MI.getOperand(0).getReg()),
+                         getRegEncoding(MI.getOperand(2).getReg()));
+    break;
   case TCore::CMPrr:
     Bits = encodeRegForm(RawOpcode, getRegEncoding(MI.getOperand(0).getReg()),
                          getRegEncoding(MI.getOperand(1).getReg()));

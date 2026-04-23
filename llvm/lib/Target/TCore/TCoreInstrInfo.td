@@ -2,14 +2,32 @@ def simm16 : Operand<i32> {
   let OperandType = "OPERAND_IMMEDIATE";
 }
 
+def calltarget : Operand<i32>;
+
 def off11 : Operand<i32> {
   let OperandType = "OPERAND_IMMEDIATE";
 }
 
 def brtarget : Operand<OtherVT>;
 
+def SDT_TCoreCall : SDTypeProfile<0, 1, [SDTCisPtrTy<0>]>;
+def SDT_TCoreCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>,
+                                            SDTCisVT<1, i32>]>;
+def SDT_TCoreCallSeqEnd : SDCallSeqEnd<[SDTCisVT<0, i32>,
+                                        SDTCisVT<1, i32>]>;
+
 def TCoreRetFlag : SDNode<"TCoreISD::RET_FLAG", SDTNone,
                           [SDNPHasChain, SDNPOptInGlue]>;
+def TCoreCall : SDNode<"TCoreISD::CALL", SDT_TCoreCall,
+                       [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
+                        SDNPVariadic]>;
+def TCoreCallReg : SDNode<"TCoreISD::CALL_REG", SDT_TCoreCall,
+                          [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
+                           SDNPVariadic]>;
+def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_TCoreCallSeqStart,
+                           [SDNPHasChain, SDNPOutGlue]>;
+def callseq_end : SDNode<"ISD::CALLSEQ_END", SDT_TCoreCallSeqEnd,
+                         [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
 
 class TCoreInst<dag outs, dag ins, string asmstr, list<dag> pattern = []>
     : Instruction {
@@ -111,12 +129,20 @@ def BLE : TCoreInst<(outs), (ins brtarget:$target), "jle $target">;
 let isCall = 1, Defs = [LR], Uses = [LR] in
 def CALLR : TCoreInst<(outs), (ins GPR:$target), "jmp $target">;
 
-let isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R1] in
+let isCall = 1, Defs = [LR, R14] in
+def CALL : TCorePseudo<(outs), (ins calltarget:$target), "call $target",
+                       [(TCoreCall tglobaladdr:$target)]>;
+def : Pat<(TCoreCall texternalsym:$target), (CALL texternalsym:$target)>;
+def : Pat<(TCoreCallReg GPR:$target), (CALLR GPR:$target)>;
+
+let isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R1, LR] in
 def RET : TCorePseudo<(outs), (ins), "jmp lr", [(TCoreRetFlag)]>;
 
 let isPseudo = 1 in
 def ADJCALLSTACKDOWN : TCoreInst<(outs), (ins i32imm:$amt1, i32imm:$amt2),
-                                 "adjsdown $amt1, $amt2">;
+                                 "adjsdown $amt1, $amt2",
+                                 [(callseq_start timm:$amt1, timm:$amt2)]>;
 let isPseudo = 1 in
 def ADJCALLSTACKUP : TCoreInst<(outs), (ins i32imm:$amt1, i32imm:$amt2),
-                               "adjsup $amt1, $amt2">;
+                               "adjsup $amt1, $amt2",
+                               [(callseq_end timm:$amt1, timm:$amt2)]>;

@@ -26,6 +26,36 @@ public:
     case TCore::ADJCALLSTACKDOWN:
     case TCore::ADJCALLSTACKUP:
       return;
+    case TCore::CALL: {
+      const MachineOperand &Target = MI->getOperand(0);
+      const MCSymbol *Symbol = nullptr;
+      if (Target.isGlobal())
+        Symbol = getSymbol(Target.getGlobal());
+      else if (Target.isSymbol())
+        Symbol = GetExternalSymbolSymbol(Target.getSymbolName());
+      else
+        report_fatal_error("TCore CALL expects global or external symbol");
+
+      const MCExpr *TargetExpr = MCSymbolRefExpr::create(Symbol, OutContext);
+
+      MCInst HiInst;
+      HiInst.setOpcode(TCore::LDUi);
+      HiInst.addOperand(MCOperand::createReg(TCore::R14));
+      HiInst.addOperand(MCOperand::createExpr(TargetExpr));
+      EmitToStreamer(*OutStreamer, HiInst);
+
+      MCInst LoInst;
+      LoInst.setOpcode(TCore::LDLi);
+      LoInst.addOperand(MCOperand::createReg(TCore::R14));
+      LoInst.addOperand(MCOperand::createExpr(TargetExpr));
+      EmitToStreamer(*OutStreamer, LoInst);
+
+      MCInst CallInst;
+      CallInst.setOpcode(TCore::CALLR);
+      CallInst.addOperand(MCOperand::createReg(TCore::R14));
+      EmitToStreamer(*OutStreamer, CallInst);
+      return;
+    }
     case TCore::RET: {
       MCInst RetInst;
       RetInst.setOpcode(TCore::CALLR);
