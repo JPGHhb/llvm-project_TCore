@@ -8,6 +8,20 @@ using namespace llvm;
 #define GET_INSTRINFO_CTOR_DTOR
 #include "TCoreGenInstrInfo.inc"
 
+static bool isCondBranchOpcode(unsigned Opc) {
+  switch (Opc) {
+  case TCore::BEQ:
+  case TCore::BNE:
+  case TCore::BGT:
+  case TCore::BLT:
+  case TCore::BGE:
+  case TCore::BLE:
+    return true;
+  default:
+    return false;
+  }
+}
+
 TCoreInstrInfo::TCoreInstrInfo(const TCoreSubtarget &STI)
     : TCoreGenInstrInfo(STI, RI, TCore::ADJCALLSTACKDOWN,
                         TCore::ADJCALLSTACKUP) {}
@@ -93,21 +107,73 @@ bool TCoreInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
                                    SmallVectorImpl<MachineOperand> &Cond,
                                    bool AllowModify) const {
   TBB = FBB = nullptr;
+  Cond.clear();
+
   if (MBB.empty())
     return false;
-  MachineInstr &Last = MBB.back();
-  switch (Last.getOpcode()) {
-  case TCore::BR:
-    TBB = Last.getOperand(0).getMBB();
+
+  MachineBasicBlock::iterator I = MBB.getLastNonDebugInstr();
+  if (I == MBB.end() || !I->isTerminator())
     return false;
+
+  MachineInstr *Last = &*I;
+  MachineInstr *SecondLast = nullptr;
+  if (I != MBB.begin()) {
+    --I;
+    while (true) {
+      if (!I->isDebugInstr()) {
+        SecondLast = &*I;
+        break;
+      }
+      if (I == MBB.begin())
+        break;
+      --I;
+    }
+  }
+
+  if (Last->getOpcode() == TCore::BR) {
+    TBB = Last->getOperand(0).getMBB();
+    if (SecondLast && isCondBranchOpcode(SecondLast->getOpcode())) {
+      FBB = TBB;
+      TBB = SecondLast->getOperand(0).getMBB();
+      Cond.push_back(MachineOperand::CreateImm(SecondLast->getOpcode()));
+    }
+    return false;
+  }
+
+  if (isCondBranchOpcode(Last->getOpcode())) {
+    TBB = Last->getOperand(0).getMBB();
+    Cond.push_back(MachineOperand::CreateImm(Last->getOpcode()));
+    return false;
+  }
+
+  return true;
+}
+
+bool TCoreInstrInfo::reverseBranchCondition(
+    SmallVectorImpl<MachineOperand> &Cond) const {
+  if (Cond.size() != 1 || !Cond[0].isImm())
+    return true;
+
+  unsigned Opc = static_cast<unsigned>(Cond[0].getImm());
+  switch (Opc) {
   case TCore::BEQ:
+    Cond[0].setImm(TCore::BNE);
+    return false;
   case TCore::BNE:
+    Cond[0].setImm(TCore::BEQ);
+    return false;
   case TCore::BGT:
-  case TCore::BLT:
-  case TCore::BGE:
+    Cond[0].setImm(TCore::BLE);
+    return false;
   case TCore::BLE:
-    TBB = Last.getOperand(0).getMBB();
-    Cond.push_back(MachineOperand::CreateImm(Last.getOpcode()));
+    Cond[0].setImm(TCore::BGT);
+    return false;
+  case TCore::BLT:
+    Cond[0].setImm(TCore::BGE);
+    return false;
+  case TCore::BGE:
+    Cond[0].setImm(TCore::BLT);
     return false;
   default:
     return true;

@@ -77,31 +77,35 @@ def NOT : TCoreInst<(outs GPR:$dst), (ins GPR:$src), "not $dst"> {
   let Constraints = "$dst = $src";
 }
 
+let hasSideEffects = 1 in
 def CMPrr : TCoreInst<(outs), (ins GPR:$lhs, GPR:$rhs), "cmp $lhs, $rhs">;
+let hasSideEffects = 1 in
 def CMPri : TCoreInst<(outs), (ins GPR:$lhs, simm16:$rhs), "cmp $lhs, $rhs">;
 
 def LDUi : TCoreInst<(outs GPR:$dst), (ins simm16:$imm), "ldu $dst, $imm">;
 def LDLi : TCoreInst<(outs GPR:$dst), (ins simm16:$imm), "ldl $dst, $imm">;
 
+let mayLoad = 1 in
 def LDRri : TCoreInst<(outs GPR:$dst), (ins GPR:$base, off11:$off),
                       "ldr $dst, [$base+$off]">;
+let mayStore = 1 in
 def STRri : TCoreInst<(outs), (ins GPR:$src, GPR:$base, off11:$off),
                       "str $src, [$base+$off]">;
 
-let isBranch = 1, isTerminator = 1, isBarrier = 1 in
+let isBranch = 1, isTerminator = 1, isBarrier = 1, hasSideEffects = 1 in
 def BR : TCoreInst<(outs), (ins brtarget:$target), "jmp $target">;
 
-let isBranch = 1, isTerminator = 1 in
+let isBranch = 1, isTerminator = 1, hasSideEffects = 1 in
 def BEQ : TCoreInst<(outs), (ins brtarget:$target), "jeq $target">;
-let isBranch = 1, isTerminator = 1 in
+let isBranch = 1, isTerminator = 1, hasSideEffects = 1 in
 def BNE : TCoreInst<(outs), (ins brtarget:$target), "jne $target">;
-let isBranch = 1, isTerminator = 1 in
+let isBranch = 1, isTerminator = 1, hasSideEffects = 1 in
 def BGT : TCoreInst<(outs), (ins brtarget:$target), "jgt $target">;
-let isBranch = 1, isTerminator = 1 in
+let isBranch = 1, isTerminator = 1, hasSideEffects = 1 in
 def BLT : TCoreInst<(outs), (ins brtarget:$target), "jlt $target">;
-let isBranch = 1, isTerminator = 1 in
+let isBranch = 1, isTerminator = 1, hasSideEffects = 1 in
 def BGE : TCoreInst<(outs), (ins brtarget:$target), "jge $target">;
-let isBranch = 1, isTerminator = 1 in
+let isBranch = 1, isTerminator = 1, hasSideEffects = 1 in
 def BLE : TCoreInst<(outs), (ins brtarget:$target), "jle $target">;
 
 let isCall = 1, Defs = [LR], Uses = [LR] in

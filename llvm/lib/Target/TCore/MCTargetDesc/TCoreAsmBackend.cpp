@@ -102,9 +102,20 @@ TCoreAsmBackend::createObjectTargetWriter() const {
   return createTCoreELFObjectWriter(OSABI);
 }
 
-bool TCoreAsmBackend::writeNopData(raw_ostream &, uint64_t,
+bool TCoreAsmBackend::writeNopData(raw_ostream &OS, uint64_t Count,
                                    const MCSubtargetInfo *) const {
-  return false;
+  if (Count == 0)
+    return true;
+
+  if (Count % 4 != 0)
+    return false;
+
+  static constexpr char NopWord[4] = {0, 0, 0, 0};
+  while (Count) {
+    OS.write(NopWord, sizeof(NopWord));
+    Count -= sizeof(NopWord);
+  }
+  return true;
 }
 
 MCAsmBackend *llvm::createTCoreAsmBackend(const Target &,
