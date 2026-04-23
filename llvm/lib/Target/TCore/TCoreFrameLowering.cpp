@@ -42,5 +42,17 @@ void TCoreFrameLowering::emitEpilogue(MachineFunction &MF,
 MachineBasicBlock::iterator TCoreFrameLowering::eliminateCallFramePseudoInstr(
     MachineFunction &MF, MachineBasicBlock &MBB,
     MachineBasicBlock::iterator I) const {
+  const auto &TII =
+      *static_cast<const TCoreInstrInfo *>(MF.getSubtarget().getInstrInfo());
+  int64_t Amount = I->getOperand(0).getImm();
+
+  if (Amount != 0) {
+    unsigned Opc =
+        I->getOpcode() == TCore::ADJCALLSTACKDOWN ? TCore::SUBri : TCore::ADDri;
+    BuildMI(MBB, I, I->getDebugLoc(), TII.get(Opc), TCore::SP)
+        .addReg(TCore::SP)
+        .addImm(Amount);
+  }
+
   return MBB.erase(I);
 }

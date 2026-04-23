@@ -17,6 +17,7 @@ public:
 
   void Select(SDNode *Node) override;
   bool selectFrameIndexAddr(SDValue Addr, SDValue &Base, SDValue &Offset);
+  bool selectAddr(SDValue Addr, SDValue &Base, SDValue &Offset);
 
 #include "TCoreGenDAGISel.inc"
 };
@@ -54,6 +55,39 @@ bool TCoreDAGToDAGISel::selectFrameIndexAddr(SDValue Addr, SDValue &Base,
   return false;
 }
 
+bool TCoreDAGToDAGISel::selectAddr(SDValue Addr, SDValue &Base,
+                                   SDValue &Offset) {
+  if (selectFrameIndexAddr(Addr, Base, Offset))
+    return true;
+
+  if (Addr.getOpcode() == ISD::ADD) {
+    if (auto *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1))) {
+      int64_t Imm = CN->getSExtValue();
+      if (isInt<11>(Imm)) {
+        Base = Addr.getOperand(0);
+        Offset = CurDAG->getTargetConstant(Imm, SDLoc(Addr), MVT::i32);
+        return true;
+      }
+    }
+    if (auto *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(0))) {
+      int64_t Imm = CN->getSExtValue();
+      if (isInt<11>(Imm)) {
+        Base = Addr.getOperand(1);
+        Offset = CurDAG->getTargetConstant(Imm, SDLoc(Addr), MVT::i32);
+        return true;
+      }
+    }
+  }
+
+  if (Addr.getValueType() == MVT::i32) {
+    Base = Addr;
+    Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);
+    return true;
+  }
+
+  return false;
+}
+
 void TCoreDAGToDAGISel::Select(SDNode *Node) {
   if (Node->isMachineOpcode()) {
     Node->setNodeId(-1);
@@ -72,7 +106,7 @@ void TCoreDAGToDAGISel::Select(SDNode *Node) {
     auto *LD = cast<LoadSDNode>(Node);
     SDValue Base;
     SDValue Offset;
-    if (!selectFrameIndexAddr(LD->getBasePtr(), Base, Offset))
+    if (!selectAddr(LD->getBasePtr(), Base, Offset))
       break;
 
     SDVTList VTs = CurDAG->getVTList(LD->getMemoryVT(), MVT::Other);
@@ -86,7 +120,7 @@ void TCoreDAGToDAGISel::Select(SDNode *Node) {
     auto *ST = cast<StoreSDNode>(Node);
     SDValue Base;
     SDValue Offset;
-    if (!selectFrameIndexAddr(ST->getBasePtr(), Base, Offset))
+    if (!selectAddr(ST->getBasePtr(), Base, Offset))
       break;
 
     SDValue Ops[] = {ST->getValue(), Base, Offset, ST->getChain()};

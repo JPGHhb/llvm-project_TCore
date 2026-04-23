@@ -138,11 +138,11 @@ def : Pat<(TCoreCallReg GPR:$target), (CALLR GPR:$target)>;
 let isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R1, LR] in
 def RET : TCorePseudo<(outs), (ins), "jmp lr", [(TCoreRetFlag)]>;
 
-let isPseudo = 1 in
+let isPseudo = 1, Defs = [SP], Uses = [SP] in
 def ADJCALLSTACKDOWN : TCoreInst<(outs), (ins i32imm:$amt1, i32imm:$amt2),
                                  "adjsdown $amt1, $amt2",
                                  [(callseq_start timm:$amt1, timm:$amt2)]>;
-let isPseudo = 1 in
+let isPseudo = 1, Defs = [SP], Uses = [SP] in
 def ADJCALLSTACKUP : TCoreInst<(outs), (ins i32imm:$amt1, i32imm:$amt2),
                                "adjsup $amt1, $amt2",
                                [(callseq_end timm:$amt1, timm:$amt2)]>;
