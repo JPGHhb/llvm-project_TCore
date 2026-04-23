@@ -96,6 +96,19 @@ void TCoreDAGToDAGISel::Select(SDNode *Node) {
 
   SDLoc DL(Node);
   switch (Node->getOpcode()) {
+  case ISD::Constant: {
+    auto *CN = cast<ConstantSDNode>(Node);
+    if (Node->getValueType(0) == MVT::i32) {
+      int64_t Imm = CN->getSExtValue();
+      if (!isInt<16>(Imm) && !isUInt<16>(Imm)) {
+        SDValue TImm = CurDAG->getTargetConstant(CN->getZExtValue(), DL, MVT::i32);
+        ReplaceNode(Node, CurDAG->getMachineNode(TCore::MOVi32, DL, MVT::i32,
+                                                 TImm));
+        return;
+      }
+    }
+    break;
+  }
   case ISD::FrameIndex: {
     int FI = cast<FrameIndexSDNode>(Node)->getIndex();
     SDValue TFI = CurDAG->getTargetFrameIndex(FI, MVT::i32);
@@ -177,9 +190,19 @@ void TCoreDAGToDAGISel::Select(SDNode *Node) {
 
     MachineSDNode *Cmp = nullptr;
     if (auto *RHSC = dyn_cast<ConstantSDNode>(RHS)) {
-      SDValue Imm = CurDAG->getTargetConstant(RHSC->getSExtValue(), DL, MVT::i32);
-      Cmp = CurDAG->getMachineNode(TCore::CMPri, DL, MVT::Other, LHS, Imm,
-                                   Chain);
+      int64_t ImmVal = RHSC->getSExtValue();
+      if (isInt<16>(ImmVal) || isUInt<16>(ImmVal)) {
+        SDValue Imm = CurDAG->getTargetConstant(ImmVal, DL, MVT::i32);
+        Cmp = CurDAG->getMachineNode(TCore::CMPri, DL, MVT::Other, LHS, Imm,
+                                     Chain);
+      } else {
+        SDValue LargeImm = CurDAG->getTargetConstant(RHSC->getZExtValue(), DL,
+                                                     MVT::i32);
+        auto *Mov =
+            CurDAG->getMachineNode(TCore::MOVi32, DL, MVT::i32, LargeImm);
+        Cmp = CurDAG->getMachineNode(TCore::CMPrr, DL, MVT::Other, LHS,
+                                     SDValue(Mov, 0), Chain);
+      }
     } else {
       Cmp = CurDAG->getMachineNode(TCore::CMPrr, DL, MVT::Other, LHS, RHS,
                                    Chain);

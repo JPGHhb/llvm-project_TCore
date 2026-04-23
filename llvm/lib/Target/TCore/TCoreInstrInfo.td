@@ -2,6 +2,10 @@ def simm16 : Operand<i32> {
   let OperandType = "OPERAND_IMMEDIATE";
 }
 
+def imm16enc : ImmLeaf<i32, [{
+  return isInt<16>(Imm) || isUInt<16>(Imm);
+}]>;
+
 def calltarget : Operand<i32>;
 def addrtarget : Operand<i32>;
 
@@ -50,7 +54,7 @@ class TCorePseudo<dag outs, dag ins, string asmstr, list<dag> pattern = []>
 
 let isMoveImm = 1 in
 def MOVri : TCoreInst<(outs GPR:$dst), (ins simm16:$imm), "mov $dst, $imm",
-                      [(set GPR:$dst, imm:$imm)]>;
+                      [(set GPR:$dst, imm16enc:$imm)]>;
 
 let isMoveReg = 1 in
 def MOVrr : TCoreInst<(outs GPR:$dst), (ins GPR:$src), "mov $dst, $src">;
@@ -65,7 +69,7 @@ class BinRR<string mnemonic, SDPatternOperator OpNode>
 class BinRI<string mnemonic, SDPatternOperator OpNode>
     : TCoreInst<(outs GPR:$dst), (ins GPR:$lhs, simm16:$rhs),
                 !strconcat(mnemonic, " $dst, $rhs"),
-                [(set GPR:$dst, (OpNode GPR:$lhs, imm:$rhs))]> {
+                [(set GPR:$dst, (OpNode GPR:$lhs, imm16enc:$rhs))]> {
   let Constraints = "$dst = $lhs";
 }
 
@@ -136,6 +140,9 @@ def MOVaddr : TCorePseudo<(outs GPR:$dst), (ins addrtarget:$target),
                           "movaddr $dst, $target",
                           [(set GPR:$dst, (TCoreLoadAddr tglobaladdr:$target))]>;
 def : Pat<(TCoreLoadAddr texternalsym:$target), (MOVaddr texternalsym:$target)>;
+
+def MOVi32 : TCorePseudo<(outs GPR:$dst), (ins i32imm:$imm),
+                         "movi32 $dst, $imm">;
 
 let isCall = 1, Defs = [LR, R14] in
 def CALL : TCorePseudo<(outs), (ins calltarget:$target), "call $target",

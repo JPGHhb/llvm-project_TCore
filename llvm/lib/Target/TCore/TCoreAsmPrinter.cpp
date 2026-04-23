@@ -52,6 +52,25 @@ public:
       EmitToStreamer(*OutStreamer, LoInst);
       return;
     }
+    case TCore::MOVi32: {
+      uint32_t Value = static_cast<uint32_t>(MI->getOperand(1).getImm());
+      uint32_t Hi = Value >> 16;
+      uint32_t Lo = Value & 0xffffu;
+      MCRegister DestReg = MI->getOperand(0).getReg();
+
+      MCInst HiInst;
+      HiInst.setOpcode(TCore::LDUi);
+      HiInst.addOperand(MCOperand::createReg(DestReg));
+      HiInst.addOperand(MCOperand::createImm(Hi));
+      EmitToStreamer(*OutStreamer, HiInst);
+
+      MCInst LoInst;
+      LoInst.setOpcode(TCore::LDLi);
+      LoInst.addOperand(MCOperand::createReg(DestReg));
+      LoInst.addOperand(MCOperand::createImm(Lo));
+      EmitToStreamer(*OutStreamer, LoInst);
+      return;
+    }
     case TCore::CALL: {
       const MachineOperand &Target = MI->getOperand(0);
       const MCSymbol *Symbol = nullptr;
