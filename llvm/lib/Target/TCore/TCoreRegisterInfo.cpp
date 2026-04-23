@@ -36,10 +36,19 @@ bool TCoreRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   MachineBasicBlock &MBB = *MI.getParent();
   MachineFunction &MF = *MBB.getParent();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
+  const auto &TII = *MF.getSubtarget().getInstrInfo();
   int FI = MI.getOperand(FIOperandNum).getIndex();
   int64_t Offset = MFI.getObjectOffset(FI) + MI.getOperand(FIOperandNum + 1).getImm();
   Offset += MFI.getStackSize();
-  MI.getOperand(FIOperandNum).ChangeToRegister(TCore::SP, false);
+  if (MI.getOpcode() == TCore::ADDri && FIOperandNum == 1) {
+    Register DestReg = MI.getOperand(0).getReg();
+    if (DestReg != TCore::SP)
+      BuildMI(MBB, II, MI.getDebugLoc(), TII.get(TCore::MOVrr), DestReg)
+          .addReg(TCore::SP);
+    MI.getOperand(1).ChangeToRegister(DestReg, false);
+  } else {
+    MI.getOperand(FIOperandNum).ChangeToRegister(TCore::SP, false);
+  }
   MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
   return false;
 }

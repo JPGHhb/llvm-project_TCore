@@ -137,8 +137,12 @@ uint32_t TCoreMCCodeEmitter::getImm16Encoding(const MCInst &MI, unsigned OpNo,
                                               SmallVectorImpl<MCFixup> &Fixups,
                                               MCFixupKind Kind) const {
   const MCOperand &MO = MI.getOperand(OpNo);
-  if (MO.isImm())
+  if (MO.isImm()) {
+    int64_t Value = MO.getImm();
+    if (!isInt<16>(Value) && !isUInt<16>(Value))
+      report_fatal_error("TCoreMCCodeEmitter: immediate out of 16-bit range");
     return static_cast<uint32_t>(MO.getImm()) & Imm16Mask;
+  }
 
   assert(MO.isExpr() && "expected immediate or expression operand");
   addFixup(Fixups, MO.getExpr(), Kind);
