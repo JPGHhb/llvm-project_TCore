@@ -135,16 +135,48 @@ SDValue TCoreTargetLowering::LowerCall(CallLoweringInfo &CLI,
   RetCCInfo.AllocateStack(CCInfo.getStackSize(), Align(4));
   RetCCInfo.AnalyzeCallResult(Ins, RetCC_TCore);
 
+  MachineFunction &MF = DAG.getMachineFunction();
+  SmallVector<SDValue, 4> ByValArgs;
+  for (unsigned I = 0, E = Outs.size(); I != E; ++I) {
+    if (!Outs[I].Flags.isByVal())
+      continue;
+
+    SDValue Arg = OutVals[I];
+    unsigned Size = Outs[I].Flags.getByValSize();
+    Align Alignment = Outs[I].Flags.getNonZeroByValAlign();
+    if ((Size % 4) != 0 || Alignment < Align(4))
+      report_fatal_error("TCore byval lowering currently requires 4-byte chunks");
+
+    int FI = MF.getFrameInfo().CreateStackObject(Size, Alignment, false);
+    SDValue FIPtr = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
+    SDValue CopyChain = Chain;
+    EVT PtrVT = getPointerTy(DAG.getDataLayout());
+    for (unsigned Off = 0; Off != Size; Off += 4) {
+      SDValue OffVal = DAG.getIntPtrConstant(Off, DL);
+      SDValue SrcPtr = DAG.getNode(ISD::ADD, DL, PtrVT, Arg, OffVal);
+      SDValue DstPtr = DAG.getNode(ISD::ADD, DL, PtrVT, FIPtr, OffVal);
+      SDValue Load =
+          DAG.getLoad(MVT::i32, DL, CopyChain, SrcPtr, MachinePointerInfo());
+      CopyChain = DAG.getStore(Load.getValue(1), DL, Load, DstPtr,
+                               MachinePointerInfo());
+    }
+    Chain = CopyChain;
+    ByValArgs.push_back(FIPtr);
+  }
+
   unsigned NumBytes = RetCCInfo.getStackSize();
   Chain = DAG.getCALLSEQ_START(Chain, NumBytes, 0, DL);
 
   SmallVector<std::pair<unsigned, SDValue>, 4> RegsToPass;
   SmallVector<SDValue, 8> MemOpChains;
   SDValue StackPtr;
+  unsigned ByValIdx = 0;
 
   for (unsigned I = 0, E = ArgLocs.size(); I != E; ++I) {
     CCValAssign &VA = ArgLocs[I];
     SDValue Arg = OutVals[I];
+    if (Outs[I].Flags.isByVal())
+      Arg = ByValArgs[ByValIdx++];
 
     switch (VA.getLocInfo()) {
     default:

@@ -112,7 +112,9 @@ void TCoreDAGToDAGISel::Select(SDNode *Node) {
   case ISD::FrameIndex: {
     int FI = cast<FrameIndexSDNode>(Node)->getIndex();
     SDValue TFI = CurDAG->getTargetFrameIndex(FI, MVT::i32);
-    ReplaceNode(Node, TFI.getNode());
+    SDValue Zero = CurDAG->getTargetConstant(0, DL, MVT::i32);
+    ReplaceNode(Node,
+                CurDAG->getMachineNode(TCore::ADDri, DL, MVT::i32, TFI, Zero));
     return;
   }
   case ISD::LOAD: {
