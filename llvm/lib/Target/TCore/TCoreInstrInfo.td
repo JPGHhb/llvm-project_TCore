@@ -133,7 +133,7 @@ def BGE : TCoreInst<(outs), (ins brtarget:$target), "jge $target">;
 let isBranch = 1, isTerminator = 1, hasSideEffects = 1 in
 def BLE : TCoreInst<(outs), (ins brtarget:$target), "jle $target">;
 
-let isCall = 1, Defs = [LR], Uses = [LR] in
+let isCall = 1, Defs = [LR] in
 def CALLR : TCoreInst<(outs), (ins GPR:$target), "jmp $target">;
 
 def MOVaddr : TCorePseudo<(outs GPR:$dst), (ins addrtarget:$target),
@@ -150,7 +150,7 @@ def CALL : TCorePseudo<(outs), (ins calltarget:$target), "call $target",
 def : Pat<(TCoreCall texternalsym:$target), (CALL texternalsym:$target)>;
 def : Pat<(TCoreCallReg GPR:$target), (CALLR GPR:$target)>;
 
-let isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R1, LR] in
+let isReturn = 1, isTerminator = 1, isBarrier = 1 in
 def RET : TCorePseudo<(outs), (ins), "jmp lr", [(TCoreRetFlag)]>;
 
 let isPseudo = 1, Defs = [SP], Uses = [SP] in

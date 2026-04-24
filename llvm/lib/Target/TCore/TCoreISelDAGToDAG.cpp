@@ -124,7 +124,7 @@ void TCoreDAGToDAGISel::Select(SDNode *Node) {
     if (!selectAddr(LD->getBasePtr(), Base, Offset))
       break;
 
-    SDVTList VTs = CurDAG->getVTList(LD->getMemoryVT(), MVT::Other);
+    SDVTList VTs = CurDAG->getVTList(LD->getValueType(0), MVT::Other);
     SDValue Ops[] = {Base, Offset, LD->getChain()};
     auto *Load = CurDAG->getMachineNode(TCore::LDRri, DL, VTs, Ops);
     CurDAG->setNodeMemRefs(cast<MachineSDNode>(Load), {LD->getMemOperand()});
@@ -154,9 +154,23 @@ void TCoreDAGToDAGISel::Select(SDNode *Node) {
     ReplaceNode(Node, Br);
     return;
   }
+  case ISD::BRCOND: {
+    SDValue Chain = Node->getOperand(0);
+    SDValue Cond = Node->getOperand(1);
+    auto *BB = cast<BasicBlockSDNode>(Node->getOperand(2));
+    SDValue Dest = CurDAG->getBasicBlock(BB->getBasicBlock());
+    SDValue Zero = CurDAG->getTargetConstant(0, DL, MVT::i32);
+    auto *Cmp =
+        CurDAG->getMachineNode(TCore::CMPri, DL, MVT::Other, Cond, Zero, Chain);
+    auto *Br =
+        CurDAG->getMachineNode(TCore::BNE, DL, MVT::Other, Dest,
+                               SDValue(Cmp, 0));
+    ReplaceNode(Node, Br);
+    return;
+  }
   case ISD::BR_CC: {
     ISD::CondCode CC = cast<CondCodeSDNode>(Node->getOperand(1))->get();
-    unsigned BranchOpc;
+    unsigned BranchOpc = 0;
     switch (CC) {
     case ISD::SETEQ:
       BranchOpc = TCore::BEQ;
@@ -176,12 +190,23 @@ void TCoreDAGToDAGISel::Select(SDNode *Node) {
     case ISD::SETLE:
       BranchOpc = TCore::BLE;
       break;
+    case ISD::SETUGT:
+      BranchOpc = TCore::BGT;
+      break;
+    case ISD::SETULT:
+      BranchOpc = TCore::BLT;
+      break;
+    case ISD::SETUGE:
+      BranchOpc = TCore::BGE;
+      break;
+    case ISD::SETULE:
+      BranchOpc = TCore::BLE;
+      break;
     default:
       break;
     }
 
-    if (CC != ISD::SETEQ && CC != ISD::SETNE && CC != ISD::SETGT &&
-        CC != ISD::SETLT && CC != ISD::SETGE && CC != ISD::SETLE)
+    if (!BranchOpc)
       break;
 
     SDValue Chain = Node->getOperand(0);

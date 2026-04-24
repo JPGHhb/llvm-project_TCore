@@ -35,6 +35,8 @@ TCoreTargetLowering::TCoreTargetLowering(const TargetMachine &TM,
   setStackPointerRegisterToSaveRestore(TCore::SP);
   setBooleanContents(ZeroOrOneBooleanContent);
   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
+  setOperationAction(ISD::SETCC, MVT::i32, Expand);
+  setOperationAction(ISD::SELECT_CC, MVT::i32, Expand);
   computeRegisterProperties(STI.getRegisterInfo());
 }
 
