@@ -20,7 +20,7 @@ enum TCoreRelocs : unsigned {
 class TCoreELFObjectWriter : public MCELFObjectTargetWriter {
 public:
   explicit TCoreELFObjectWriter(uint8_t OSABI)
-      : MCELFObjectTargetWriter(false, OSABI, ELF::EM_NONE, true) {}
+      : MCELFObjectTargetWriter(false, OSABI, ELF::EM_TCORE, true) {}
 
   unsigned getRelocType(const MCFixup &Fixup, const MCValue &,
                         bool IsPCRel) const override {

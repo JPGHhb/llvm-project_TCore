@@ -183,6 +183,24 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,
       break;
     }
     break;
+  case ELF::EM_TCORE:
+    switch (Type) {
+    case 0:
+      return "R_TCORE_NONE";
+    case 1:
+      return "R_TCORE_32";
+    case 2:
+      return "R_TCORE_PCREL16_WORD";
+    case 3:
+      return "R_TCORE_HI16";
+    case 4:
+      return "R_TCORE_LO16";
+    case 5:
+      return "R_TCORE_ABS16";
+    default:
+      break;
+    }
+    break;
   default:
     break;
   }
