@@ -146,14 +146,15 @@ SDValue TCoreTargetLowering::LowerCall(CallLoweringInfo &CLI,
     SDValue Arg = OutVals[I];
     unsigned Size = Outs[I].Flags.getByValSize();
     Align Alignment = Outs[I].Flags.getNonZeroByValAlign();
-    if ((Size % 4) != 0 || Alignment < Align(4))
-      report_fatal_error("TCore byval lowering currently requires 4-byte chunks");
+    const unsigned CopySize = alignTo(Size, 4u);
+    if (Alignment < Align(4))
+      Alignment = Align(4);
 
-    int FI = MF.getFrameInfo().CreateStackObject(Size, Alignment, false);
+    int FI = MF.getFrameInfo().CreateStackObject(CopySize, Alignment, false);
     SDValue FIPtr = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
     SDValue CopyChain = Chain;
     EVT PtrVT = getPointerTy(DAG.getDataLayout());
-    for (unsigned Off = 0; Off != Size; Off += 4) {
+    for (unsigned Off = 0; Off != CopySize; Off += 4) {
       SDValue OffVal = DAG.getIntPtrConstant(Off, DL);
       SDValue SrcPtr = DAG.getNode(ISD::ADD, DL, PtrVT, Arg, OffVal);
       SDValue DstPtr = DAG.getNode(ISD::ADD, DL, PtrVT, FIPtr, OffVal);
