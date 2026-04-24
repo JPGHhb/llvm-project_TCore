@@ -75,7 +75,8 @@ entry:
 }
 
 ; OBJ: Format: elf32-tcore
-; OBJ: Machine: 0x5443
+; OBJ: Arch: tcore
+; OBJ: Machine: EM_TCORE (0x5443)
 ; OBJ: Section ({{[0-9]+}}) .rela.text {
 ; OBJ: R_TCORE_HI16 g 0x0
 ; OBJ: R_TCORE_LO16 g 0x0

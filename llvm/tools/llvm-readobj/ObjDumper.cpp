@@ -30,6 +30,12 @@ static inline Error createError(const Twine &Msg) {
   return createStringError(object::object_error::parse_failed, Msg);
 }
 
+static StringRef getDisplayArchName(const object::ObjectFile &Obj) {
+  if (Obj.getFileFormatName() == "elf32-tcore")
+    return "tcore";
+  return Triple::getArchTypeName(Obj.getArch());
+}
+
 ObjDumper::ObjDumper(ScopedPrinter &Writer, StringRef ObjName) : W(Writer) {
   // Dumper reports all non-critical errors as warnings.
   // It does not print the same warning more than once.
@@ -97,7 +103,7 @@ void ObjDumper::printFileSummary(StringRef FileStr, object::ObjectFile &Obj,
     W.printString("File", FileStr);
   }
   W.printString("Format", Obj.getFileFormatName());
-  W.printString("Arch", Triple::getArchTypeName(Obj.getArch()));
+  W.printString("Arch", getDisplayArchName(Obj));
   W.printString("AddressSize",
                 std::string(formatv("{0}bit", 8 * Obj.getBytesInAddress())));
   this->printLoadName();

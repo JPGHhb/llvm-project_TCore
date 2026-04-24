@@ -1328,6 +1328,7 @@ const EnumEntry<unsigned> ElfMachineType[] = {
   ENUM_ENT(EM_LANAI,         "EM_LANAI"),
   ENUM_ENT(EM_BPF,           "EM_BPF"),
   ENUM_ENT(EM_VE,            "NEC SX-Aurora Vector Engine"),
+  ENUM_ENT(EM_TCORE,         "EM_TCORE"),
   ENUM_ENT(EM_LOONGARCH,     "LoongArch"),
   ENUM_ENT(EM_INTELGT,       "Intel Graphics Technology"),
 };
@@ -8902,7 +8903,9 @@ void JSONELFDumper<ELFT>::printFileSummary(StringRef FileStr, ObjectFile &Obj,
   DictScope D(this->W, "FileSummary");
   this->W.printString("File", FileStr);
   this->W.printString("Format", Obj.getFileFormatName());
-  this->W.printString("Arch", Triple::getArchTypeName(Obj.getArch()));
+  this->W.printString("Arch", Obj.getFileFormatName() == "elf32-tcore"
+                                  ? "tcore"
+                                  : Triple::getArchTypeName(Obj.getArch()));
   this->W.printString(
       "AddressSize",
       std::string(formatv("{0}bit", 8 * Obj.getBytesInAddress())));
